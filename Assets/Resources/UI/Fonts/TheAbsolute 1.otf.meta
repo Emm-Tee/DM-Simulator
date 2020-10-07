@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: 91e1c325ef5ab9e4cbb63e0c588d8f9a
+TrueTypeFontImporter:
+  externalObjects: {}
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: The Absolute
+  fontNames:
+  - The Absolute
+  fallbackFontReferences:
+  - {fileID: 12800000, guid: 67d876210ed09bb408efe5ffc830f0b8, type: 3}
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  useLegacyBoundsCalculation: 0
+  shouldRoundAdvanceValue: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

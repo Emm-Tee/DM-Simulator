@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 2
+  tags: []
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Chairs
+    uniqueID: 1572955183
+    locked: 0
+  - name: BodiesBehindTable
+    uniqueID: 713656695
+    locked: 0
+  - name: Table
+    uniqueID: 2755275273
+    locked: 0
+  - name: BodiesAboveTable
+    uniqueID: 3291175339
+    locked: 0
+  - name: Heads
+    uniqueID: 2193175477
+    locked: 0
+  - name: DM stuff Background
+    uniqueID: 3475391539
+    locked: 0
+  - name: DM Mid
+    uniqueID: 2897729901
+    locked: 0
+  - name: DM UI
+    uniqueID: 3529814099
+    locked: 0
+  - name: top
+    uniqueID: 499740011
+    locked: 0
