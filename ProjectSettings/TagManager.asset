@@ -56,6 +56,9 @@ TagManager:
   - name: Heads
     uniqueID: 2193175477
     locked: 0
+  - name: Faces
+    uniqueID: 1293339063
+    locked: 0
   - name: DM stuff Background
     uniqueID: 3475391539
     locked: 0
@@ -67,4 +70,7 @@ TagManager:
     locked: 0
   - name: top
     uniqueID: 499740011
+    locked: 0
+  - name: evenTopper
+    uniqueID: 683143449
     locked: 0

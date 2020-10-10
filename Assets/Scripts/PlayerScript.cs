@@ -16,11 +16,11 @@ public class PlayerScript : MonoBehaviour
      */
 
     //Components
-    
+
     public string playerName;
     public int playerSeat = 0;
     public int tier;                            //How many points the player has to go towards attributes 
-    private float agreeModPercent;
+    private float agreeModPercent;              //How strongly agreability affects session enjoyment
     private float socialChemNeutral;
 
     // Player traits
@@ -29,41 +29,82 @@ public class PlayerScript : MonoBehaviour
     private int maxTraitScore = 10;
     private float maxAttPoints;
 
-    //public int availability;                  //How available they are for sessions --- removed for now
-    public int agreeability;                    //What variance from their preferance they are okay with before unhappiness;
-    public int socialChemistry;                 //How well they get along with other players in the group
-    private int maxEnthusiasm;                   //How much they like DnD
-    private int oosChats;                        //How much they participate in out of session chats (Increases enjoyment)
-    private int stressResilliance;               //How much stress they can handle before they don't enjoy/ break
+    //public int availability;                      //How available they are for sessions --- removed for now
+    public int agreeability;                        //What variance from their preferance they are okay with before unhappiness;
+    public int socialChemistry;                     //How well they get along with other players in the group
+    private int maxEnthusiasm;                      //How much they like DnD
+    public int oosChats;                           //How much they participate in out of session chats (Increases enjoyment)
+    private int stressResilliance;                  //How much stress they can handle before they don't enjoy/ break
 
     //DnD preferences     
-    public int combatRP;                        //What balance between combat and RP they enjoy (Scale with mid being equal, low combat, high RP)
-    public int drama;                           //How much they enjoy drama
-    public int mystery;                         //How much they enjoy mysteries / unanswered questions
+    public int combatRPPref;                        //What balance between combat and RP they enjoy (Scale with mid being equal, low combat, high RP)
+    public int dramaPref;                           //How much they enjoy drama
+    public int mysteryPref;                         //How much they enjoy mysteries / unanswered questions
 
     //Campaign related
-    public int timeSinceJoined;                 //How long they've been playing
-    public int dmRelations;                     //How well the DM knows them 
-    public float enthusiasm;                      //How much they're enjoying the campaign 
-    public float sessionEnjoyment;                //How much they enjoyed the previous session.
+    public int timeSinceJoined;                     //How long they've been playing   
+    public int enthusiasm;                        //How much they're enjoying the campaign 
+    public float sessionEnjoyment;                  //How much they enjoyed the previous session. (0-300?)
+
+    public float dmRelation;                        //How well the DM knows them 
+    //DM Relation Related
+    float dmRelationMaxPointsPerSession;            //The maximum increase in relation per session
+    float tierModContributionToMaxPoints;           //How many of those points come from the tier of the player (60%)
+    float socialChemModContributionToMaxPoints;     //How many points come from the players social chem (20%)
+    float ooscModContributionToMaxPoints;           //""
+    float sessionEnjoymentModMin;                   //The minimum amount session enjoyment affects the score (0 Enthusiasm Points this session is min percentage)
+
+    public int dmRelationPointsTotal;                       //Total points                       
+    public int dmRelationPointsAllocated;                   //Points that aren't new, ie have already been allocated
+    public int[] dmRelationPointsAllocation = new int[3];   //Which session aspect each point has gone to
+    int maxDMRelationSessionAspectPoints = 3;       //3 sprites for each session aspect
+    /*DM Relation points explained*
+     As the relationship with the DM increases, the DM gets to know the player better and can tell how much they like individual aspects of the campaign - 
+     This is represented by the DM relation stickies, and for each session aspect there are 3 stages of understanding - no sticky, blank sticky, labelled sticky with reaction
+     These stages represent the dm getting to know the player personally
+     I want the order of these stages to be randomised with each player, the points do this - so as the dmRelation increases, so do the number of points
+     The new points are assigned randomly to one of the session aspects and the more points the greater the stage of understanding*/
 
 
     //Session related
-    float sessionDrama;
-    float sessionCombat;
-    float sessionMystery;
+    float sessionCombatEnjoyment;
+    float sessionDramaEnjoyment;    
+    float sessionMysteryEnjoyment;
 
-    public int sessionPointsTS;
-    public int sessionPointsTotal;
+    public int EnthusiasmChangePointsThisSession;
+    public int EnthusiasmChangePointsTotal;
 
-    public int dmRelationsIncrease;
+    /* How Enthusiasm Change Points work
+     Session points mean that enthusiasm changes are affected by their enjoyment of previous sessions.
+     Enthusiasm changes when the points reach + or - 3, and then that three value is reset. 
+     So if you've done some bad sessions and they're sitting at -2, another bad session will put them at -3, which will decrease enthusiasm 
+     and reset the points score to 0. A horrendous session will put hte points to -4 and reset to -1 (sessions that are perfect will change enthusiams each session)
+     session points aquisition: 
+        perfect session     +3
+        next best           +2
+        good                +1
+        average              0
+        bad                 -1
+        worst               -2
+
+        Enthusiasm increases at 3, (then the points get reduced by 3)
+        Enthusiasm decreases at -3 (then the points get increased by 3)
+        So if you overshoot an increase/ decrease then your pre-change progress will carry
+         */
+
+    public float dmRelationsIncrease;
 
     //UI  
     public SpriteRenderer bodySprite;
     public SpriteRenderer headSprite;
+    public SpriteRenderer faceSprite;
 
     public GameObject reactionSessionObject;
-    public GameObject reactionRelationCover;
+    //public GameObject reactionRelationCover;
+
+    public SpriteRenderer relationStickyCombat;
+    public SpriteRenderer relationStickyDrama;
+    public SpriteRenderer relationStickyMystery;
 
     public GameObject reactionCombatObject;
     public GameObject reactionDramaObject;
@@ -78,7 +119,7 @@ public class PlayerScript : MonoBehaviour
 
     public GameObject speechBubble;
 
-    public Color[] enthusiasmColours = new Color[6];
+    public Sprite[] enthusiasmFaces;
 
 
     /*
@@ -102,17 +143,17 @@ public class PlayerScript : MonoBehaviour
     private int[] availAttList;                 //The list to generate attList from
     private int availAttNum;                    //The number of attributes left not full (how many attList indices are valid)
     private int placedAttListNums;              //Index to place non-full attribute numbers into attList
-    
+
 
 
     // Start is called before the first frame update
     void Start()
     {
-        
+
         numAttributeTraits = 5;
         availAttNum = numAttributeTraits;
         maxAttPoints = numAttributeTraits * maxTraitScore;
-        agreeModPercent = 0.4f;
+        agreeModPercent = 0.2f;
         socialChemNeutral = 4;
 
         playerName = getAName();
@@ -120,15 +161,27 @@ public class PlayerScript : MonoBehaviour
         distributePoints(tier);
         generatePrefences();
 
-        dmRelations = Random.Range(0, 40);
+        dmRelation = Random.Range(0, 20);
         dmRelationsIncrease = 2;
 
+        dmRelationPointsAllocated = 0;
+        maxDMRelationSessionAspectPoints = 2;
+
+        //DM relation increase
+        dmRelationMaxPointsPerSession = 10;
+        tierModContributionToMaxPoints = 0.6f;
+        socialChemModContributionToMaxPoints = 0.2f;
+        ooscModContributionToMaxPoints = 0.2f;
+        sessionEnjoymentModMin = 0.5f;
 
 
         //Manage UI
         speechBubble = GameObject.Find(string.Concat("SB", playerSeat));
+
+
+
         //choose frame
-        speechBubble.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/Speech/", playerSeat, "/", Random.Range(1,16)));            
+        speechBubble.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/Speech/", playerSeat, "/", Random.Range(1, 16)));
         speechBubble.SetActive(false);
 
         int spriteNo = Random.Range(1, 5);
@@ -136,13 +189,15 @@ public class PlayerScript : MonoBehaviour
         bodySprite = GetComponent<SpriteRenderer>();
         bodySprite.sprite = Resources.Load<Sprite>(string.Concat("Art/Players/PC", playerSeat, "/", playerSeat, ".", Random.Range(1, 5)));
 
-        if(playerSeat == 1 || playerSeat == 4)
+        if (playerSeat == 1 || playerSeat == 4)
         {
             bodySprite.sortingLayerName = "BodiesBehindTable";
         }
 
         headSprite = transform.Find("Head").GetComponent<SpriteRenderer>();
         headSprite.sprite = Resources.Load<Sprite>(string.Concat("Art/Players/PC", playerSeat, "/", playerSeat, ".a", Random.Range(1, 5)));
+        faceSprite = transform.Find("Face").GetComponent<SpriteRenderer>();
+
 
         transform.position = GameObject.Find(string.Concat("Pos_Player_", playerSeat)).transform.position;
         transform.localScale = GameObject.Find(string.Concat("Pos_Player_", playerSeat)).transform.localScale;
@@ -150,10 +205,11 @@ public class PlayerScript : MonoBehaviour
         GameObject.Find(string.Concat("Name_P", playerSeat)).GetComponent<Text>().text = playerName;
 
         reactionSessionObject = GameObject.Find(string.Concat("Seat", playerSeat, "Reaction"));
-        reactionRelationCover = GameObject.Find(string.Concat("Seat", playerSeat, "DMRelations"));
-        reactionRelationCover.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/DMRelations/", playerSeat, ".", dmRelations /10));
+        relationStickyCombat = GameObject.Find(string.Concat("stickyP", playerSeat, "Combat")).GetComponent<SpriteRenderer>();
+        relationStickyDrama = GameObject.Find(string.Concat("stickyP", playerSeat, "Drama")).GetComponent<SpriteRenderer>();
+        relationStickyMystery = GameObject.Find(string.Concat("stickyP", playerSeat, "Mystery")).GetComponent<SpriteRenderer>();
 
-        reactionCombatObject = GameObject.Find(string.Concat("Seat", playerSeat,"Combat"));
+        reactionCombatObject = GameObject.Find(string.Concat("Seat", playerSeat, "Combat"));
         reactionDramaObject = GameObject.Find(string.Concat("Seat", playerSeat, "Drama"));
         reactionMysteryObject = GameObject.Find(string.Concat("Seat", playerSeat, "Mystery"));
 
@@ -165,11 +221,20 @@ public class PlayerScript : MonoBehaviour
         else
             enthusiasm = 5;
 
-        sessionEnthusiasmSpriteNo = Mathf.RoundToInt(5 - ((enthusiasm / 2) + 0.1f));
+        
 
-        bodySprite.color = enthusiasmColours[sessionEnthusiasmSpriteNo];
-        headSprite.color = enthusiasmColours[sessionEnthusiasmSpriteNo];
+        //bodySprite.color = enthusiasmFaces[sessionEnthusiasmSpriteNo];
+        //headSprite.color = enthusiasmFaces[sessionEnthusiasmSpriteNo];
+        enthusiasmFaces = new Sprite[6];
+        for(int i = 0; i < enthusiasmFaces.Length; i++)
+        {
+            enthusiasmFaces[i] = Resources.Load<Sprite>(string.Concat("Art/Expressions/Seat", playerSeat, "/", (i+1)));
+        }
+        sessionEnthusiasmSpriteNo = enthusiasm/2 +1;
+        faceSprite.sprite = enthusiasmFaces[4];
+        faceSprite.transform.position = GameObject.Find(string.Concat("Face", playerSeat)).transform.position;
 
+       
 
     }
 
@@ -198,7 +263,7 @@ public class PlayerScript : MonoBehaviour
         */
 
     }
-    
+
     int getTier()
     {
         float tierPerc = Random.Range(0, 100);
@@ -248,6 +313,8 @@ public class PlayerScript : MonoBehaviour
             attMin = min4;
             attMax = min3;
         }
+        //Tier 4 - worst points = 
+        //min .3 * 50 = 15 Points ~ can theoretically hit 0 points for an attribute
 
         attributePoints = Mathf.RoundToInt(Random.Range(maxAttPoints * attMin, maxAttPoints * attMax)); //Randomise how many points gotten within tier's max and min.
 
@@ -293,14 +360,14 @@ public class PlayerScript : MonoBehaviour
         oosChats = distributedAttPoints[3];
         stressResilliance = distributedAttPoints[4];
     }
-    
+
     void generatePrefences()
     {
-        drama = Random.Range(0, maxTraitScore + 1);           //How much they enjoy drama 
-        combatRP = Random.Range(0, maxTraitScore + 1);      //What balance between combat and RP they enjoy (Scale with mid being equal, low combat, high RP)
-        mystery = Random.Range(0, maxTraitScore + 1);
+        dramaPref = Random.Range(0, maxTraitScore + 1);           //How much they enjoy drama 
+        combatRPPref = Random.Range(0, maxTraitScore + 1);      //What balance between combat and RP they enjoy (Scale with mid being equal, low combat, high RP)
+        mysteryPref = Random.Range(0, maxTraitScore + 1);
     }
-    
+
     void agreeMod()
     {
         /*
@@ -322,68 +389,66 @@ public class PlayerScript : MonoBehaviour
          * (agreeability * agreeModPercent * 0.1f)          == multiply agreeability score by the mod percent to affect how great an influence agreeability has on the unhappy value - modPercent is set to 0.4, so agreeability ranges from 0% t0 40% (inverted to 60% to 100% of unhappy) - 10 agreeability will change unhappy score to 60% of it's value
          */
 
-        /* ----- Speech Bubble ----- */
-        speechBubble.SetActive(true);
+
 
 
         timeSinceJoined++;
 
-        if(dmRelations < 100)
-        {
-            dmRelations += dmRelationsIncrease;
-            dmRelations += oosChats/3;
-            
-        }
-
-        reactionRelationCover.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/DMRelations/", playerSeat, ".", dmRelations /10));
 
 
-        sessionCombat = Mathf.Abs(combatRP - sCombat) * (10 - (agreeability * agreeModPercent));
-        sessionDrama = Mathf.Abs(drama - sDrama) * (10 - (agreeability * agreeModPercent));
-        sessionMystery = Mathf.Abs(mystery - sMystery) * (10 - (agreeability * agreeModPercent));
+
+        /* ----- Session Enjoyment ----- */
+
+        sessionCombatEnjoyment = Mathf.Abs(combatRPPref - sCombat) * (10 - (agreeability * agreeModPercent)); //Lower is better  10 is worst enjoyment. * 10-(0*agreeMod) = 100 worst score
+        sessionDramaEnjoyment = Mathf.Abs(dramaPref - sDrama) * (10 - (agreeability * agreeModPercent));
+        sessionMysteryEnjoyment = Mathf.Abs(mysteryPref - sMystery) * (10 - (agreeability * agreeModPercent));
 
         float socialChemMod = ((socialChemNeutral * agreeModPercent) + (10 - socialChemistry * agreeModPercent)) * .1f;
 
-        sessionEnjoyment = sessionDrama + sessionCombat + sessionMystery;
+        sessionEnjoyment = sessionDramaEnjoyment + sessionCombatEnjoyment + sessionMysteryEnjoyment; //Ranges from 0 - 300
 
+        /* ----- Speech Bubble ----- */
+        speechBubble.SetActive(true);
 
-        /*  Reaction UI  */
-        if (sessionEnjoyment == 0)
+        /*  Enjoyment Reaction UI  (thumbs) */
+        if (sessionEnjoyment == 0) //Lower is more enjoyment
         {
             sessionReactionSpriteNo = 0;
-            sessionPointsTS = 5;
+            EnthusiasmChangePointsThisSession = 5;
         }
         else if (sessionEnjoyment <= 60)
         {
             sessionReactionSpriteNo = 1;
-            sessionPointsTS = 4;
+            EnthusiasmChangePointsThisSession = 4;
         }
         else if (sessionEnjoyment <= 120)
         {
             sessionReactionSpriteNo = 2;
-            sessionPointsTS = 3;
+            EnthusiasmChangePointsThisSession = 3;
         }
         else if (sessionEnjoyment <= 180)
         {
             sessionReactionSpriteNo = 3;
-            sessionPointsTS = 2;
+            EnthusiasmChangePointsThisSession = 2;
         }
         else if (sessionEnjoyment <= 240)
         {
             sessionReactionSpriteNo = 4;
-            sessionPointsTS = 1;
+            EnthusiasmChangePointsThisSession = 1;
         }
         else
         {
             sessionReactionSpriteNo = 5;
-            sessionPointsTS = 0;
+            EnthusiasmChangePointsThisSession = 0;
         }
 
-        sessionPointsTS -= 2;
-  
-        //Increase Max enthusiasm 
-        
-        if(enthusiasm == maxEnthusiasm)
+        EnthusiasmChangePointsThisSession -= 2;
+
+        /* ----- Campaign Enthusiasm ----- */
+
+        //Increase Max enthusiasm if session continue to be perfect
+
+        if (enthusiasm == maxEnthusiasm)
         {
             if (sessionEnjoyment <= 20)
             {
@@ -395,18 +460,18 @@ public class PlayerScript : MonoBehaviour
         }
 
 
-        sessionPointsTotal += sessionPointsTS;
+        EnthusiasmChangePointsTotal += EnthusiasmChangePointsThisSession;
 
-        if(sessionPointsTotal >= 3)
+        if (EnthusiasmChangePointsTotal >= 3)
         {
-            if(enthusiasm < maxEnthusiasm)
+            if (enthusiasm < maxEnthusiasm)
                 enthusiasm++;
-            sessionPointsTotal -= 3;
+            EnthusiasmChangePointsTotal -= 3;
         }
-        else if( sessionPointsTotal <= -3)
+        else if (EnthusiasmChangePointsTotal <= -3)
         {
             enthusiasm--;
-            sessionPointsTotal += 3;
+            EnthusiasmChangePointsTotal += 3;
         }
         if (enthusiasm > maxEnthusiasm)
         {
@@ -416,63 +481,134 @@ public class PlayerScript : MonoBehaviour
             enthusiasm = 0;
 
 
-        if (sessionCombat == 0)
+        /*DM RELATIONS ACQUISITION */
+        if (dmRelation < 100)
+        {
+            float tierPoints = (dmRelationMaxPointsPerSession * tierModContributionToMaxPoints) - ((tier - 1) * ((dmRelationMaxPointsPerSession * tierModContributionToMaxPoints) / 3));
+            float socialChemPoints = socialChemistry / (maxTraitScore / (dmRelationMaxPointsPerSession * socialChemModContributionToMaxPoints));
+            float ooscPoints = oosChats / (maxTraitScore / (dmRelationMaxPointsPerSession * ooscModContributionToMaxPoints));
+
+            float enthusiasmMod = (Mathf.Abs(EnthusiasmChangePointsThisSession)) / 3.0f * (1.0f - sessionEnjoymentModMin) + sessionEnjoymentModMin;
+
+            dmRelation += ((tierPoints + socialChemPoints + ooscPoints) * enthusiasmMod);
+        }
+
+        /* DM RELATIONS*/
+
+        dmRelationPointsTotal = Mathf.FloorToInt((dmRelation-20)/13);        //algorithm that converts dm relation stat to number of points
+
+        if (dmRelationPointsTotal > maxDMRelationSessionAspectPoints * 3)
+            dmRelationPointsTotal = maxDMRelationSessionAspectPoints * 3;
+
+        if (dmRelationPointsTotal > dmRelationPointsAllocated)
+        {
+            int[] indexOfSessionAspectsWithoutFullPoints = new int[3]; //array stores the number - which represents the index in the Allocation array - of aspects that don't have a full allocation
+            int numberOfSessionAspectsWithoutFullPoints = 0; //acts as dynamic length of array - if all aspects aren't full then it'll be 3, if there's onyl one aspect not full then it'll be 1 - to traunicate the length of the above array to only the ones that are currently not full (even though the above array has a fixed length)
+            for (int i = 0; i < dmRelationPointsAllocation.Length; i++)
+            {
+                if (dmRelationPointsAllocation[i] < maxDMRelationSessionAspectPoints)
+                {
+                    indexOfSessionAspectsWithoutFullPoints[numberOfSessionAspectsWithoutFullPoints] = i;
+                    numberOfSessionAspectsWithoutFullPoints++;
+                }
+            }
+            dmRelationPointsAllocation[indexOfSessionAspectsWithoutFullPoints[Random.Range(0, numberOfSessionAspectsWithoutFullPoints)]]++;
+            dmRelationPointsAllocated++;
+        }
+
+
+        //reactionRelationCover.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/DMRelations/", playerSeat, ".", dmRelations / 10));
+
+
+
+
+        /* ----- UI UPDATE ----- */
+
+        //Session enjoyment reactions
+
+
+
+        if (sessionCombatEnjoyment == 0)
             combatSpriteNo = 0;
-        else if (sessionCombat <= 20)
+        else if (sessionCombatEnjoyment <= 20)
             combatSpriteNo = 1;
-        else if (sessionCombat <= 40)
+        else if (sessionCombatEnjoyment <= 40)
             combatSpriteNo = 2;
-        else if (sessionCombat <= 60)
+        else if (sessionCombatEnjoyment <= 60)
             combatSpriteNo = 3;
-        else if (sessionCombat <= 80)
+        else if (sessionCombatEnjoyment <= 80)
             combatSpriteNo = 4;
         else
             combatSpriteNo = 5;
 
-        if (sessionDrama == 0)
+        if (sessionDramaEnjoyment == 0)
             dramaSpriteNo = 0;
-        else if (sessionDrama <= 20)
+        else if (sessionDramaEnjoyment <= 20)
             dramaSpriteNo = 1;
-        else if (sessionDrama <= 40)
+        else if (sessionDramaEnjoyment <= 40)
             dramaSpriteNo = 2;
-        else if (sessionDrama <= 60)
+        else if (sessionDramaEnjoyment <= 60)
             dramaSpriteNo = 3;
-        else if (sessionDrama <= 80)
+        else if (sessionDramaEnjoyment <= 80)
             dramaSpriteNo = 4;
         else
             dramaSpriteNo = 5;
 
-        if (sessionMystery == 0)
+        if (sessionMysteryEnjoyment == 0)
             mysterySpriteNo = 0;
-        else if (sessionMystery <= 20)
+        else if (sessionMysteryEnjoyment <= 20)
             mysterySpriteNo = 1;
-        else if (sessionMystery <= 40)
+        else if (sessionMysteryEnjoyment <= 40)
             mysterySpriteNo = 2;
-        else if (sessionMystery <= 60)
+        else if (sessionMysteryEnjoyment <= 60)
             mysterySpriteNo = 3;
-        else if (sessionMystery <= 80)
+        else if (sessionMysteryEnjoyment <= 80)
             mysterySpriteNo = 4;
         else
             mysterySpriteNo = 5;
 
         //GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/Players/PC", playerSeat, "/", playerSeat, ".", spriteNo));
 
+        if (enthusiasm > 10)
+        {
+            int tempEnthusiasm = 10;
+            sessionEnthusiasmSpriteNo = tempEnthusiasm / 2 + 1;
+        }
+        else
+            sessionEnthusiasmSpriteNo = enthusiasm / 2 + 1;
 
-        sessionEnthusiasmSpriteNo = Mathf.RoundToInt(5- ((enthusiasm / 2) + 0.1f));
+        //Enthusiasm Face
 
-        //Enthusiasm colour
-
-        bodySprite.color = enthusiasmColours[sessionEnthusiasmSpriteNo];
-        headSprite.color = enthusiasmColours[sessionEnthusiasmSpriteNo];
-
+        //bodySprite.color = enthusiasmFaces[sessionEnthusiasmSpriteNo];
+        //headSprite.color = enthusiasmFaces[sessionEnthusiasmSpriteNo];
+        faceSprite.sprite = enthusiasmFaces[sessionEnthusiasmSpriteNo];
 
 
         reactionSessionObject.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/Faces/Face", sessionReactionSpriteNo)); //reaction session object is now actually enthusiasm display object but I'm too lazy to change the names
-        
 
-        reactionCombatObject.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/Faces/Face", combatSpriteNo));
-        reactionDramaObject.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/Faces/Face", dramaSpriteNo));
-        reactionMysteryObject.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/Faces/Face", mysterySpriteNo));
+
+        //DM screen faces
+        if (dmRelationPointsAllocation[0] == maxDMRelationSessionAspectPoints)
+            reactionCombatObject.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/Faces/Face", combatSpriteNo));
+        else
+            reactionCombatObject.GetComponent<SpriteRenderer>().sprite = null;
+
+        if (dmRelationPointsAllocation[1] == maxDMRelationSessionAspectPoints)
+            reactionDramaObject.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/Faces/Face", dramaSpriteNo));
+        else
+            reactionDramaObject.GetComponent<SpriteRenderer>().sprite = null;
+
+        if (dmRelationPointsAllocation[2] == maxDMRelationSessionAspectPoints)
+            reactionMysteryObject.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(string.Concat("Art/UI/Faces/Face", mysterySpriteNo));
+        else
+            reactionMysteryObject.GetComponent<SpriteRenderer>().sprite = null;
+
+        //RelationsStickies
+
+        relationStickyCombat.sprite = relationStickyCombat.GetComponent<StickyRelations>().frames[dmRelationPointsAllocation[0]];
+        relationStickyDrama.sprite = relationStickyDrama.GetComponent<StickyRelations>().frames[dmRelationPointsAllocation[1]];
+        relationStickyMystery.sprite = relationStickyMystery.GetComponent<StickyRelations>().frames[dmRelationPointsAllocation[2]];
+
     }
 
     /*
