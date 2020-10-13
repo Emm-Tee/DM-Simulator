@@ -230,7 +230,7 @@ public class PlayerScript : MonoBehaviour
         {
             enthusiasmFaces[i] = Resources.Load<Sprite>(string.Concat("Art/Expressions/Seat", playerSeat, "/", (i+1)));
         }
-        sessionEnthusiasmSpriteNo = enthusiasm/2 +1;
+        sessionEnthusiasmSpriteNo = enthusiasm/2 ;
         faceSprite.sprite = enthusiasmFaces[4];
         faceSprite.transform.position = GameObject.Find(string.Concat("Face", playerSeat)).transform.position;
 
@@ -572,10 +572,10 @@ public class PlayerScript : MonoBehaviour
         if (enthusiasm > 10)
         {
             int tempEnthusiasm = 10;
-            sessionEnthusiasmSpriteNo = tempEnthusiasm / 2 + 1;
+            sessionEnthusiasmSpriteNo = tempEnthusiasm / 2 ;
         }
         else
-            sessionEnthusiasmSpriteNo = enthusiasm / 2 + 1;
+            sessionEnthusiasmSpriteNo = enthusiasm / 2;
 
         //Enthusiasm Face
 
